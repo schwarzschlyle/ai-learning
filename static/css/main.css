@@ -1,0 +1,118 @@
+/* General Styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #121212; /* Dark black background */
+    color: #e0e0e0; /* Soft white text */
+    line-height: 1.6;
+}
+
+.content {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #1e1e1e; /* Slightly lighter black for contrast */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+/* Heading */
+h1 {
+    text-align: center;
+    color: #ffffff;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+table th, table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+table th {
+    background-color: #2b2b2b; /* Dark grey for headers */
+    color: #ffffff;
+    text-transform: uppercase;
+    font-weight: normal;
+}
+
+table tr:hover {
+    background-color: #333; /* Slight highlight on hover */
+}
+
+table td a {
+    text-decoration: none;
+    color: #ffffff;
+    font-weight: bold;
+    border-bottom: 1px dashed #ffffff;
+}
+
+table td a:hover {
+    color: #bdbdbd; /* Softer white on hover */
+}
+
+/* Form Styles */
+form {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+form input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+form input[type="text"]::placeholder {
+    color: #888; /* Subtle grey placeholder */
+}
+
+form input[type="submit"] {
+    background-color: #333;
+    color: #ffffff;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+form input[type="submit"]:hover {
+    background-color: #444;
+    color: #bdbdbd; /* Softer white */
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .content {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    form {
+        flex-direction: column;
+    }
+
+    form input[type="text"], form input[type="submit"] {
+        width: 100%;
+    }
+}
