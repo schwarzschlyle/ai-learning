@@ -9,6 +9,7 @@ app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'test.db')}"
 
+
 db = SQLAlchemy(app)
 
 
@@ -18,6 +19,7 @@ class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(200), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow())
+   
 
 
     def __repr__(self):
@@ -74,3 +76,5 @@ def update(id):
 
 if __name__ == "__main__":
     app.run()
+
+
