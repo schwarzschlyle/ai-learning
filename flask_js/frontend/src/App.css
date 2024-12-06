@@ -1,19 +1,26 @@
+/* General layout */
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  display: flex;
+  justify-content: space-between; /* Ensure space between the content and the log screen */
+  flex-wrap: wrap; /* Allow the layout to wrap on smaller screens */
 }
 
+/* Logo styling */
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -33,6 +40,7 @@
   }
 }
 
+/* Card Styling */
 .card {
   padding: 2em;
 }
@@ -41,6 +49,7 @@
   color: #888;
 }
 
+/* Modal Styling */
 .modal {
   position: fixed;
   z-index: 1;
@@ -49,7 +58,7 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0, 0, 0, 0.8); /* Darker overlay for a cohesive look */
+  background-color: rgba(0, 0, 0, 0.8); /* Darker overlay for cohesive look */
 }
 
 .modal-content {
@@ -57,20 +66,114 @@
   margin: 10% auto;
   padding: 1.5rem;
   border-radius: 8px;
-  border: none; /* Removed border for cleaner design */
-  color: #fff; /* White text for better contrast */
-  width: 70%; /* Slightly smaller for aesthetic proportions */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+  border: none;
+  color: #fff;
+  width: 70%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
+/* Close button */
 .close {
-  color: #ff6b6b; /* Bright red close button for better visibility */
+  color: #ff6b6b;
   float: right;
   font-size: 1.5rem;
   font-weight: bold;
   cursor: pointer;
   transition: color 200ms;
 }
+
 .close:hover {
-  color: #ff9b9b; /* Slightly lighter on hover */
+  color: #ff9b9b;
 }
+
+/* Generated Email Styling */
+.generated-email {
+  background-color: #1e1e2f; /* Matches the dark theme */
+  color: #fff;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  text-align: left; /* Align text to the left for better readability */
+}
+
+/* Heading for generated email */
+.generated-email h2 {
+  color: #f1f1f1;
+  font-size: 1.5em;
+}
+
+/* Email details */
+.generated-email p {
+  font-size: 1.2em;
+  color: #ddd;
+}
+
+/* Preformatted email content */
+.generated-email pre {
+  background-color: #333;
+  padding: 15px;
+  border-radius: 5px;
+  font-size: 1em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #f5f5f5;
+}
+
+/* Terminal log section styling */
+.log-terminal {
+  background-color: #1e1e1e;
+  color: #f5f5f5;
+  padding: 15px;
+  width: 30%;
+  height: 400px;
+  max-height: 500px;
+  overflow-y: auto;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  z-index: 10;
+}
+
+.log-terminal h3 {
+  color: #f5f5f5;
+  font-size: 1.2em;
+}
+
+.log-container {
+  font-family: 'Courier New', monospace;
+  color: #ccc;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1024px) {
+  #root {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .log-terminal {
+    width: 90%;
+    margin-top: 20px;
+    position: static;
+  }
+
+  .container {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .generated-email {
+    width: 90%;
+    margin: 20px auto;
+  }
+}
+

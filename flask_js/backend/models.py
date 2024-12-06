@@ -14,3 +14,7 @@ class Contact(db.Model):
             "lastName": self.last_name,
             "email": self.email
         }
+
+
+
+        
