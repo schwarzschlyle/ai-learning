@@ -1,10 +1,127 @@
 import { useState, useEffect } from 'react';
-import ContactList from './ContactList';
 import './App.css';
-import ContactForm from './ContactForm';
+
+const ContactForm = ({ existingContact = {}, updateCallback }) => {
+  const [firstName, setFirstName] = useState(existingContact.firstName || '');
+  const [lastName, setLastName] = useState(existingContact.lastName || '');
+  const [email, setEmail] = useState(existingContact.email || '');
+
+  const updating = Object.entries(existingContact).length !== 0;
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+
+    const data = {
+      firstName,
+      lastName,
+      email,
+    };
+
+    const url =
+      'http://127.0.0.1:5000/' +
+      (updating ? `update_contact/${existingContact.id}` : 'create_contact');
+
+    const options = {
+      method: updating ? 'PATCH' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    };
+    const response = await fetch(url, options);
+
+    if (response.status !== 201 && response.status !== 200) {
+      const errorData = await response.json();
+      alert(errorData.message);
+    } else {
+      updateCallback();
+    }
+  };
+
+  return (
+    <form onSubmit={onSubmit}>
+      <div>
+        <label htmlFor="firstName">First Name:</label>
+        <input
+          type="text"
+          id="firstName"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="lastName">Last Name:</label>
+        <input
+          type="text"
+          id="lastName"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="email">Email:</label>
+        <input
+          type="text"
+          id="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      <button type="submit">{updating ? 'Update' : 'Create'}</button>
+    </form>
+  );
+};
+
+const ContactList = ({ contacts, updateContact, updateCallback }) => {
+  const onDelete = async (id) => {
+    try {
+      const options = { method: 'DELETE' };
+      const response = await fetch(
+        `http://127.0.0.1:5000/delete_contact/${id}`,
+        options
+      );
+
+      if (response.status === 200) {
+        updateCallback();
+      } else {
+        console.error('Failed to delete contact.');
+      }
+    } catch (error) {
+      alert(`Error occurred: ${error.message}`);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Contacts</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {contacts.map((contact) => (
+            <tr key={contact.id}>
+              <td>{contact.firstName}</td>
+              <td>{contact.lastName}</td>
+              <td>{contact.email}</td>
+              <td>
+                <button onClick={() => updateContact(contact)}>Update</button>
+                <button onClick={() => onDelete(contact.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 function App() {
-  // State variables
   const [contacts, setContacts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentContact, setCurrentContact] = useState({});
@@ -12,21 +129,17 @@ function App() {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
-  // Fetch contacts and logs on component mount
   useEffect(() => {
     fetchContacts();
     fetchLogs();
 
-    // Fetch logs periodically
     const logInterval = setInterval(fetchLogs, 2000);
     return () => clearInterval(logInterval);
   }, []);
 
-  // Fetch contacts from the server
   const fetchContacts = async () => {
     try {
       const response = await fetch('http://127.0.0.1:5000/contacts');
@@ -38,7 +151,6 @@ function App() {
     }
   };
 
-  // Fetch logs from the server
   const fetchLogs = async () => {
     try {
       const response = await fetch('http://127.0.0.1:5000/logs');
@@ -49,7 +161,6 @@ function App() {
     }
   };
 
-  // Handle modal operations
   const closeModal = () => {
     setIsModalOpen(false);
     setCurrentContact({});
@@ -62,13 +173,11 @@ function App() {
     setIsModalOpen(true);
   };
 
-  // Handle contact updates
   const onUpdate = () => {
     closeModal();
     fetchContacts();
   };
 
-  // Generate email
   const generateEmail = async () => {
     const query = prompt('Who do you want to email?');
     const purpose = prompt('What is your email about?');
@@ -99,7 +208,6 @@ function App() {
     }
   };
 
-  // Pagination logic
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
   const currentRecords = contacts.slice(indexOfFirstRecord, indexOfLastRecord);
@@ -115,7 +223,6 @@ function App() {
 
   return (
     <>
-      {/* Loading Screen */}
       {isLoading && (
         <div className="loading-screen">
           <h2>Loading...</h2>
@@ -123,10 +230,8 @@ function App() {
         </div>
       )}
 
-      {/* Main Content */}
       {!isLoading && (
         <div className="container">
-          {/* Pagination Controls */}
           <div className="pagination">
             <button
               onClick={handlePrevPage}
@@ -147,20 +252,17 @@ function App() {
             </button>
           </div>
 
-          {/* Contact List */}
           <ContactList
             contacts={currentRecords}
             updateContact={openEditModal}
             updateCallback={onUpdate}
           />
 
-          {/* Action Buttons */}
           <div className="actions">
             <button onClick={openCreateModal}>Create New Contact</button>
             <button onClick={generateEmail}>Generate Email</button>
           </div>
 
-          {/* Modal */}
           {isModalOpen && (
             <div className="modal">
               <div className="modal-content">
@@ -175,7 +277,6 @@ function App() {
             </div>
           )}
 
-          {/* Generated Email */}
           {generatedEmail && (
             <div className="generated-email">
               <h2>
@@ -189,15 +290,12 @@ function App() {
         </div>
       )}
 
-      {/* Log Terminal */}
-      <div className="log-terminal">
-        <h3>Logs</h3>
-        <div className="log-container">
-          {logs.map((log, index) => (
-            <pre key={index}>{log}</pre>
-          ))}
-        </div>
-      </div>
+<div className="log-terminal">
+  <div className="log-container">
+    {logs.length > 0 ? logs[logs.length - 1] : 'No logs available'}
+  </div>
+</div>
+
     </>
   );
 }

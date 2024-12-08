@@ -191,6 +191,60 @@ def get_logs():
     """Fetch the latest logs."""
     return {"logs": logs[-7:]}
 
+
+
+
+
+@app.patch("/update_contact/{contact_id}", response_model=dict)
+def update_contact(contact_id: int, updated_contact: ContactCreate, db: Session = Depends(get_db)):
+    """Update a contact's information and update the vector in Pinecone."""
+    try:
+        contact = db.query(Contact).filter(Contact.id == contact_id).first()
+        if not contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
+
+        # Update contact fields
+        contact.firstName = updated_contact.firstName
+        contact.lastName = updated_contact.lastName
+        contact.email = updated_contact.email
+        db.commit()
+        db.refresh(contact)
+
+        # Update the vector in Pinecone
+        vectorize_and_upsert_contact(contact)
+        return {"message": "Contact updated successfully", "contact": contact.to_dict()}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating contact: {str(e)}")
+
+
+@app.delete("/delete_contact/{contact_id}", response_model=dict)
+def delete_contact(contact_id: int, db: Session = Depends(get_db)):
+    """Delete a contact and its vector from Pinecone."""
+    try:
+        contact = db.query(Contact).filter(Contact.id == contact_id).first()
+        if not contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
+
+        # Remove the contact from Pinecone
+        try:
+            index.delete(ids=[str(contact_id)])
+            log_to_frontend(f"Deleted vector for contact ID {contact_id} from Pinecone")
+        except Exception as e:
+            log_to_frontend(f"Error deleting vector for contact ID {contact_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error deleting vector: {str(e)}")
+
+        # Delete the contact from the database
+        db.delete(contact)
+        db.commit()
+        return {"message": "Contact deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting contact: {str(e)}")
+
+
+
+
 if __name__ == "__main__":
     log_to_frontend("Starting application...")
     uvicorn.run("fastapi_open:app", host="0.0.0.0", port=5000)

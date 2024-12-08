@@ -145,34 +145,34 @@ input::placeholder {
   color: #000;
 }
 
-/* Simplified Log Terminal Styling */
 .log-terminal {
-  background-color: #111; /* Slightly lighter black for less contrast */
-  color: #0f0; /* Terminal green text */
-  padding: 10px; /* Reduced padding for a smaller footprint */
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-height: 200px; /* Decreased height */
-  overflow-y: auto; /* Scroll when content overflows */
-  border-radius: 4px; /* Subtle rounded corners */
-  font-family: 'Courier New', Courier, monospace; /* Consistent monospace font */
-  font-size: 0.85rem; /* Smaller font size */
-  white-space: pre-wrap; /* Preserve spacing and allow wrapping */
-  word-wrap: break-word; /* Handle long words gracefully */
-  box-shadow: none; /* Remove box shadow for a minimalist design */
-  text-align: left;
-  border: 1px solid #333; /* Subtle border for clarity */
+  height: 25px; /* Adjust height if needed */
+  background-color: #000; /* Dark background for contrast */
+  color: #0f0; /* Bright green for log text */
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 25px;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+  z-index: 9999;
+  border-bottom: 1px solid #333; /* Optional: Add a border for separation */
 }
 
-.log-terminal h3 {
-  color: #0f0; /* Terminal-style heading */
-  font-size: 1rem; /* Smaller heading size */
-  margin-bottom: 5px; /* Reduced margin */
+.log-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
 }
 
-.log-terminal pre {
-  color: #0f0; /* Maintain green text */
-  margin: 0;
-}
 
 
 /* Pagination */
@@ -297,3 +297,5 @@ input::placeholder {
   font-size: 1rem;
   color: #ccc;
 }
+
+
