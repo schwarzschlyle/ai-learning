@@ -148,8 +148,10 @@ input::placeholder {
 .log-terminal {
   position: fixed;
   top: 0;
-  left: 0;
-  width: 100%;
+  left: 50%;
+  transform: translateX(-50%); /* Centers the terminal horizontally */
+  width: 100%; /* Full-width initially */
+  max-width: 800px; /* Matches the form's max-width */
   height: 25px; /* Adjust height if needed */
   background-color: #000; /* Dark background for contrast */
   color: #0f0; /* Bright green for log text */
@@ -163,7 +165,10 @@ input::placeholder {
   padding: 0 10px;
   z-index: 9999;
   border-bottom: 1px solid #333; /* Optional: Add a border for separation */
+  box-sizing: border-box; /* Ensures padding doesn't exceed max width */
 }
+
+
 
 .log-container {
   display: flex;

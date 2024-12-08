@@ -146,10 +146,14 @@ def generate_email(email_request: EmailRequest, db: Session = Depends(get_db)):
 
         # Generate email using OpenAI's ChatCompletion
         prompt = (
-            f"Compose a professional email to {contact.firstName} {contact.lastName} "
-            f"({contact.email}) regarding {purpose}. Start with 'Dear {contact.firstName} {contact.lastName},' "
-            f"and end with a formal closing."
+            f"Compose a well-structured and professional email to {contact.firstName} {contact.lastName} "
+            f"at their email address ({contact.email}). The email should be polite, engaging, and tailored "
+            f"to the context of the following purpose: '{purpose}'. Start the email with the salutation 'Dear {contact.firstName} {contact.lastName},' "
+            f"and ensure the email maintains a professional tone throughout. The body should clearly convey the purpose, "
+            f"provide any necessary details or context, and include a call to action or next steps if applicable. "
+            f"Conclude the email with a formal closing and a signature block formatted as 'Best regards, [Your Name]'."
         )
+
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
