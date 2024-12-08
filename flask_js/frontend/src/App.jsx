@@ -1,76 +1,3 @@
-// import { useState, useEffect } from 'react'
-// import ContactList from './ContactList'
-// import './App.css'
-// import ContactForm from './ContactForm'
-
-
-// function App() {
-//   const [contacts, setContacts] = useState([]);
-//   const [ isModalOpen, setIsModalOpen ] = useState(false)
-//   const [currentContact, setCurrentContact] = useState({})
-
-
-//   useEffect(() => {
-//     fetchContacts()
-    
-//   }, [])
-
-
-
-//   const fetchContacts = async () => {
-//     const response = await fetch("http://127.0.0.1:5000/contacts")
-//     const data = await response.json()
-//     setContacts(data.contacts)
-//     console.log(data.contacts)
-
-
-//   }
-
-
-//   const closeModal = () => {
-//     setIsModalOpen(false)
-//     setCurrentContact({})
-//   }
-
-//   const openCreateModal = () => {
-//     if (!isModalOpen) setIsModalOpen(true)
-//   }
-
-
-//   const openEditModal = (contact) => {
-//     if (isModalOpen) return
-//     setCurrentContact(contact)
-//     setIsModalOpen(true)
-
-//   }
-
-//   const onUpdate = () => {
-//     closeModal()
-//     fetchContacts()
-//   }
-
-//   return (<>
-//   <ContactList contacts = {contacts} updateContact={openEditModal} updateCallback={onUpdate} />
-//   <button onClick={openCreateModal}> Create New Contact </button>
-//   { isModalOpen && <div className="modal">
-//   <div className="modal-content">
-//     <span className="close" onClick={closeModal}>&times;</span>
-//     <ContactForm existingContact={currentContact} updateCallback={onUpdate}/>
-//   </div>
-//   </div>
-
-//   }
-    
-//     </>
-//   );
-
-// }
-
-
-
-
-// export default App;
-
 import { useState, useEffect } from 'react';
 import ContactList from './ContactList';
 import './App.css';
@@ -82,26 +9,30 @@ function App() {
   const [currentContact, setCurrentContact] = useState({});
   const [generatedEmail, setGeneratedEmail] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true); // New state for loading
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
 
   useEffect(() => {
     fetchContacts();
-    fetchLogs(); // Fetch logs when component mounts
-    const interval = setInterval(fetchLogs, 2000); // Poll logs every 2 seconds
-    return () => clearInterval(interval); // Clean up interval on unmount
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchContacts = async () => {
     const response = await fetch('http://127.0.0.1:5000/contacts');
     const data = await response.json();
     setContacts(data.contacts);
-    setIsLoading(false); // Set loading to false after data is fetched
+    setIsLoading(false);
   };
 
   const fetchLogs = async () => {
     const response = await fetch('http://127.0.0.1:5000/logs');
     const data = await response.json();
-    setLogs(data.logs); // Set the logs from the backend
+    setLogs(data.logs);
   };
 
   const closeModal = () => {
@@ -149,16 +80,34 @@ function App() {
         contact: data.contact,
         emailContent: data.emailContent,
       });
-      fetchLogs(); // Fetch logs after email generation
+      fetchLogs();
     } catch (error) {
       alert('Failed to generate email. Please try again.');
       console.error(error);
     }
   };
 
+  // Pagination Logic
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = contacts.slice(indexOfFirstRecord, indexOfLastRecord);
+
+  const totalPages = Math.ceil(contacts.length / recordsPerPage);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   return (
     <>
-      {/* Show loading screen while fetching data */}
       {isLoading && (
         <div className="loading-screen">
           <h2>Loading...</h2>
@@ -166,11 +115,10 @@ function App() {
         </div>
       )}
 
-      {/* Main content after loading */}
       {!isLoading && (
         <div className="container">
           <ContactList
-            contacts={contacts}
+            contacts={currentRecords}
             updateContact={openEditModal}
             updateCallback={onUpdate}
           />
@@ -183,22 +131,48 @@ function App() {
                 <span className="close" onClick={closeModal}>
                   &times;
                 </span>
-                <ContactForm existingContact={currentContact} updateCallback={onUpdate} />
+                <ContactForm
+                  existingContact={currentContact}
+                  updateCallback={onUpdate}
+                />
               </div>
             </div>
           )}
 
           {generatedEmail && (
             <div className="generated-email">
-              <h2>Generated Email for {generatedEmail.contact.firstName} {generatedEmail.contact.lastName}</h2>
+              <h2>
+                Generated Email for {generatedEmail.contact.firstName}{' '}
+                {generatedEmail.contact.lastName}
+              </h2>
               <p>Email: {generatedEmail.contact.email}</p>
               <pre>{generatedEmail.emailContent}</pre>
             </div>
           )}
+
+          {/* Pagination Controls */}
+          <div className="pagination">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className="pagination-btn"
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="pagination-btn"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Terminal log display */}
       <div className="log-terminal">
         <h3>Logs</h3>
         <div className="log-container">

@@ -50,6 +50,12 @@ if not api_key:
 pc = Pinecone(api_key=api_key)
 index = pc.Index("mini-index")
 
+
+
+# index.delete(delete_all=True)
+# exit()
+
+
 model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 email_generator = pipeline(
     "text-generation", 
@@ -220,22 +226,63 @@ def generate_email(email_request: EmailRequest, db: Session = Depends(get_db)):
 
 
 
-
-# Function to vectorize and upsert data to Pinecone
 def vectorize_and_upsert_to_pinecone():
-    logger.info("Starting to vectorize the database and upsert to Pinecone...")
+    logger.info("Starting vectorization and upsert to Pinecone...")
     db = SessionLocal()
     contacts = db.query(Contact).all()
 
-    vectors = []
-    for contact in contacts:
-        contact_text = f"{contact.firstName} {contact.lastName} {contact.email}"
-        vector = model.encode(contact_text, convert_to_tensor=False)
-        vectors.append((str(contact.id), vector.tolist()))
+    if not contacts:
+        logger.warning("Database is empty. Skipping upsert to Pinecone.")
+        log_to_frontend("Database is empty. Skipping upsert to Pinecone.")
+        return
 
-    index.upsert(vectors)
-    # logger.info("Vectorization and upsert to Pinecone completed successfully.")
-    log_to_frontend("Vectorization and upsert to Pinecone completed successfully.")
+    try:
+        # Fetch all existing vector IDs from Pinecone
+        logger.info("Fetching existing vector IDs from Pinecone...")
+        existing_ids = set()
+        response = index.describe_index_stats()
+        vector_count = response.get("total_vector_count", 0)
+
+        if vector_count > 0:
+            logger.info(f"Index contains {vector_count} vectors.")
+            # If there are existing vectors, fetch them in batches
+            for i in range(0, vector_count, 100):  # Fetch 100 IDs at a time
+                fetch_response = index.fetch(ids=[str(x) for x in range(i, i + 100)])
+                if "vectors" in fetch_response:
+                    existing_ids.update(fetch_response["vectors"].keys())
+
+        # Log fetched IDs
+        logger.info(f"Fetched {len(existing_ids)} existing IDs from Pinecone.")
+
+        # Collect new vectors for upsertion
+        vectors_to_upsert = []
+        for contact in contacts:
+            contact_id = str(contact.id)
+            if contact_id not in existing_ids:
+                contact_text = f"{contact.firstName} {contact.lastName} {contact.email}"
+                vector = model.encode(contact_text, convert_to_tensor=False)
+                vectors_to_upsert.append((contact_id, vector.tolist()))
+
+        # Upsert only new vectors
+        if vectors_to_upsert:
+            index.upsert(vectors=vectors_to_upsert)
+            logger.info(f"{len(vectors_to_upsert)} new vectors upserted to Pinecone.")
+            log_to_frontend(f"{len(vectors_to_upsert)} new vectors upserted to Pinecone.")
+        else:
+            logger.info("No new vectors to upsert. Pinecone is already up-to-date.")
+            log_to_frontend("No new vectors to upsert. Pinecone is already up-to-date.")
+
+    except Exception as e:
+        logger.error(f"Error during vectorization/upsert: {str(e)}")
+        log_to_frontend(f"Error during vectorization/upsert: {str(e)}")
+    finally:
+        db.close()
+
+
+
+
+
+
 
 
 # Check if the database has been vectorized and upserted on first run
@@ -266,7 +313,7 @@ def upsert_vectors_on_run():
 @app.get("/logs")
 def get_logs():
     """ Fetch the latest logs """
-    return {"logs": logs[-1:]}  # Return the last 10 logs for example
+    return {"logs": logs[-7:]}  # Return the last 10 logs for example
 
 
 # Main Entry
