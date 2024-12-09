@@ -3,8 +3,6 @@ from fastapi.responses import JSONResponse
 from fastapi.logger import logger
 import boto3
 import os
-from pathlib import Path
-import asyncio
 import uuid
 import openai
 from pinecone import Pinecone
@@ -18,8 +16,6 @@ from pydantic import BaseModel
 class ChatRequest(BaseModel):
     query: str
 
-
-
 # Initialize FastAPI app
 app = FastAPI()
 app.add_middleware(
@@ -29,7 +25,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
-
 
 # Environment variables
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -49,28 +44,18 @@ s3_client = boto3.client(
 # Initialize Pinecone
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(PINECONE_INDEX_NAME)
-# index.delete(delete_all=True)
-# exit()
-
-
 
 def log_message(message):
     """Log execution messages."""
     logger.info(message)
     print(message)
 
-
-import io  # Import io for BytesIO operations
-
-uploaded_files = {}  # Dictionary to store document IDs and their associated PDF filenames
-
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
     """Upload a file to S3 and process it."""
     log_message(f"Uploading file: {file.filename}")
 
-    # Generate unique document ID
-    doc_id = str(uuid.uuid4())
+    doc_id = str(uuid.uuid4())  # Generate unique document ID
 
     try:
         # Read file content into memory
@@ -80,9 +65,6 @@ async def upload_file(file: UploadFile = File(...)):
         pdf_key = f"{doc_id}/{file.filename}"  # Use doc_id as a folder-like prefix
         s3_client.upload_fileobj(io.BytesIO(file_content), BUCKET_NAME, pdf_key)
         log_message(f"Uploaded {file.filename} to S3 as {pdf_key}.")
-
-        # Store the PDF file name associated with the document ID
-        uploaded_files[doc_id] = pdf_key
 
         # Convert file content to text and upload the text file
         text_content = await convert_to_text(file.filename, file_content)
@@ -102,14 +84,10 @@ async def upload_file(file: UploadFile = File(...)):
         log_message(f"Error uploading file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-
 @app.delete("/delete/{doc_id}")
 async def delete_file(doc_id: str):
     """Delete a document and its associated data."""
     try:
-        # Delete original file and text from S3
         original_key = f"{doc_id}.original"
         text_key = f"{doc_id}.txt"
         s3_client.delete_object(Bucket=BUCKET_NAME, Key=original_key)
@@ -124,7 +102,6 @@ async def delete_file(doc_id: str):
     except Exception as e:
         log_message(f"Error deleting file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/chat/")
 async def chat_with_bot(request: ChatRequest):
@@ -151,39 +128,19 @@ async def chat_with_bot(request: ChatRequest):
 
         # Log the interaction to S3
         log_content = f"Query: {query}\nResponse: {chatbot_response}\n\n"
-
-        # Check if the log file exists
-        existing_logs = None
-        try:
-            response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=log_key)
-            if 'Contents' in response:
-                # Log file exists, download it
-                existing_logs = io.BytesIO()
-                s3_client.download_fileobj(Bucket=BUCKET_NAME, Key=log_key, Fileobj=existing_logs)
-                existing_logs.seek(0)
-                log_content = existing_logs.read().decode("utf-8") + log_content
-        except Exception as e:
-            log_message(f"No existing log file. Creating a new one: {e}")
-
-        # Upload updated log file
         s3_client.put_object(Bucket=BUCKET_NAME, Key=log_key, Body=log_content.encode("utf-8"))
         log_message(f"Logged conversation to {log_key}.")
 
-        # Return the chatbot response and session ID
         return {"response": chatbot_response, "session_id": session_id}
     except Exception as e:
         log_message(f"Error in chat process: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-
-
 @app.get("/download/{doc_id}")
 async def download_pdf(doc_id: str):
     """Retrieve the original PDF file for the given document ID."""
     try:
-        if doc_id not in uploaded_files: 
+        if doc_id not in uploaded_files:
             raise HTTPException(status_code=404, detail="Document ID not found.")
 
         pdf_key = uploaded_files[doc_id]  # Get the PDF file key
@@ -197,19 +154,14 @@ async def download_pdf(doc_id: str):
         log_message(f"Error retrieving PDF file for doc_id {doc_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 async def convert_to_text(filename, file_content):
     """Convert file content to text."""
     try:
         if filename.endswith(".pdf"):
-            # Process PDF files
             pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
-            text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text() or ""  # Handle None gracefully
+            text = "".join(page.extract_text() or "" for page in pdf_reader.pages)
             return text
         elif filename.endswith(".txt"):
-            # Process plain text files
             return file_content.decode("utf-8")
         else:
             raise ValueError("Unsupported file type for conversion.")
@@ -217,12 +169,9 @@ async def convert_to_text(filename, file_content):
         log_message(f"Error converting file to text: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to convert file to text: {str(e)}")
 
-
-
 def chunk_text(text):
     """Chunk text into manageable pieces."""
-    return [text[i : i + 500] for i in range(0, len(text), 500)]
-
+    return [text[i:i + 500] for i in range(0, len(text), 500)]
 
 async def vectorize_chunks(chunks, doc_id):
     """Embed chunks using OpenAI and prepare them for Pinecone."""
@@ -232,28 +181,21 @@ async def vectorize_chunks(chunks, doc_id):
         vectors.append({"id": str(uuid.uuid4()), "values": embedding, "metadata": {"doc_id": doc_id, "text": chunk}})
     return vectors
 
-
 async def embed_text(text):
     """Generate embeddings using OpenAI."""
     response = openai.Embedding.create(input=text, model="text-embedding-3-large")
     return response["data"][0]["embedding"]
 
-
 def generate_response(query, context):
-    """Generate chatbot response tailored for hiring managers."""
+    """Generate chatbot response tailored for wider context."""
     system_prompt = (
-        "You are Lylebot - a friendly and professional AI assistant representing the online resume of Lyle. "
-        "Your role is to engage in a conversational manner, answering hiring-related questions clearly, concisely, and enthusiastically. "
-        "Use the provided resume context to respond directly to the hiring manager's questions. "
-        "Be very specific with the response and cite sources from the context."
-        "If the context does not contain the requested information, respond politely and suggest reaching out to Lyle directly for further details. "
-        "Avoid making assumptions or using information outside the provided context. "
-        "Always aim to create a positive impression of Lyle's skills, experience, and qualifications. "
-        "Find a way to use the context information to address the query."
-        "Here is the resume context:\n\n"
+        "You are Lylebot, a friendly and professional AI assistant. "
+        "Answer queries concisely and enthusiastically using only the provided context. "
+        "Do not make assumptions or use external information. "
+        "If the query is unrelated to the context, inform the user and suggest reaching out to Lyle directly. "
+        "Here is the context:\n\n"
         f"{context}"
     )
-    
     response = openai.ChatCompletion.create(
         model="gpt-4o",
         messages=[
