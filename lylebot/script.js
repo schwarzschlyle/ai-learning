@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (chatMessages && !chatMessages.hasChildNodes()) {
         // Add initial message with typewriter effect
         const initialMessage = addChatMessage("", "bot");
-        typewriterEffect(initialMessage, "Hi! I'm LyleBot. How may I help you?", 50);
+        typewriterEffect(initialMessage, "Hi! I'm LyleBot. How may I help you?", 15);
 
         // Add sample questions
         const questions = [
@@ -152,47 +152,60 @@ document.getElementById("chatForm").addEventListener("submit", async (e) => {
     container.appendChild(iframe);
 }
 
+
+
+
+
+
+
+
 document.getElementById("reachOutForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const companyName = document.getElementById("companyName").value;
-    const jobDescription = document.getElementById("jobDescription").value;
+    e.preventDefault(); // Prevent default form submission
+
+    const companyName = document.getElementById("companyName").value.trim();
+    const jobDescription = document.getElementById("jobDescription").value.trim();
     const emailPreview = document.getElementById("emailPreview");
     const sendEmailButton = document.getElementById("sendEmailButton");
-    
-    // Show loading message
+
+    // Clear previous content and show a loading message
     emailPreview.innerHTML = "<p>Generating email content...</p>";
-    
+    sendEmailButton.style.display = "none";
+
     try {
         const response = await fetch("http://localhost:5000/generate_email/", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                companyName: companyName,
-                jobDescription: jobDescription,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ companyName, jobDescription }),
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         const result = await response.json();
         const emailContent = result.emailContent;
 
-        // Display email preview
+        // Render the email preview
         emailPreview.innerHTML = `
             <h2>Email Preview</h2>
-            <p><strong>Subject:</strong> Application for the position at ${companyName}</p>
+            <p><strong>Subject:</strong> ${emailContent.split("\n")[0]}</p>
             <p><strong>Body:</strong></p>
-            <pre>${emailContent}</pre>
+            <div class="email-body">${emailContent.replace(/\n/g, "<br>")}</div>
         `;
-        
-        // Show the send email button
+
+        // Show the "Send Email" button
         sendEmailButton.style.display = "block";
     } catch (error) {
+        emailPreview.innerHTML = "<p>Error generating email. Please try again later.</p>";
         console.error("Error generating email:", error);
-        emailPreview.innerHTML = "<p>Error generating email. Please try again.</p>";
     }
 });
+
+
+
+
+
+
 
 // Send the generated email to Lyle's email address
 async function sendEmail() {
@@ -271,9 +284,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const fileList = document.getElementById("fileList");
 
             result.files.forEach(file => {
-                const fileItem = document.createElement("a");
-                fileItem.href = `http://localhost:5000/download/${file.doc_id}`;
-                fileItem.target = "_blank";
+                const fileItem = document.createElement("div");
                 fileItem.className = "file-item";
 
                 const fileIcon = document.createElement("img");
@@ -288,9 +299,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                 fileSize.textContent = "120 KB"; // Mock file size; update dynamically if available
                 fileSize.className = "file-size";
 
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "X";
+                deleteButton.className = "delete-button";
+                deleteButton.addEventListener("click", async () => {
+                    const confirmDelete = confirm(`Are you sure you want to delete "${file.filename}"?`);
+                    if (confirmDelete) {
+                        await deleteFile(file.doc_id, fileItem);
+                    }
+                });
+
                 fileItem.appendChild(fileIcon);
                 fileItem.appendChild(fileName);
                 fileItem.appendChild(fileSize);
+                fileItem.appendChild(deleteButton);
                 fileList.appendChild(fileItem);
             });
         } else {
@@ -301,3 +323,108 @@ document.addEventListener("DOMContentLoaded", async () => {
         uploadStatus.innerHTML = "<p>Error loading uploaded files. Please try again later.</p>";
     }
 });
+
+async function deleteFile(docId, fileItem) {
+    try {
+        const response = await fetch(`http://localhost:5000/delete/${docId}`, {
+            method: "DELETE",
+        });
+
+        if (response.ok) {
+            alert("File deleted successfully.");
+            fileItem.remove(); // Remove the file item from the UI
+        } else {
+            const result = await response.json();
+            alert(`Error deleting file: ${result.detail}`);
+        }
+    } catch (error) {
+        console.error("Error deleting file:", error);
+        alert("An error occurred while deleting the file. Please try again.");
+    }
+}
+
+
+
+const dragAndDropZone = document.getElementById("dragAndDropZone");
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
+
+dragAndDropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dragAndDropZone.classList.add("dragging");
+});
+
+dragAndDropZone.addEventListener("dragleave", () => {
+    dragAndDropZone.classList.remove("dragging");
+});
+
+dragAndDropZone.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    dragAndDropZone.classList.remove("dragging");
+
+    const files = Array.from(e.dataTransfer.files);
+    await processFiles(files);
+});
+
+fileInput.addEventListener("change", async () => {
+    const files = Array.from(fileInput.files);
+    await processFiles(files);
+});
+
+async function processFiles(files) {
+    for (const file of files) {
+        if (file.type === "application/pdf") {
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const response = await fetch("http://localhost:5000/upload/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    displayFile(file, result.doc_id);
+                } else {
+                    const error = await response.json();
+                    console.error("Upload failed:", error.detail);
+                }
+            } catch (error) {
+                console.error("Error uploading file:", error);
+            }
+        } else {
+            alert("Only PDF files are allowed.");
+        }
+    }
+}
+
+function displayFile(file, docId) {
+    const fileItem = document.createElement("div");
+    fileItem.classList.add("file-item");
+
+    const fileName = document.createElement("span");
+    fileName.textContent = file.name;
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.classList.add("delete-button");
+    deleteButton.addEventListener("click", async () => {
+        try {
+            const response = await fetch(`http://localhost:5000/delete/${docId}`, {
+                method: "DELETE",
+            });
+            if (response.ok) {
+                fileItem.remove();
+            } else {
+                console.error("Failed to delete file.");
+            }
+        } catch (error) {
+            console.error("Error deleting file:", error);
+        }
+    });
+
+    fileItem.appendChild(fileName);
+    fileItem.appendChild(deleteButton);
+    fileList.appendChild(fileItem);
+}

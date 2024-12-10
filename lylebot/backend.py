@@ -23,9 +23,11 @@ class ChatRequest(BaseModel):
 DB_FILE = "file_mappings.db"
 
 def init_db():
-    """Initialize SQLite database and create mappings table."""
+    """Initialize SQLite database and create mappings and chunks tables."""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+
+    # Table to map documents to their S3 keys
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS file_mappings (
             doc_id TEXT PRIMARY KEY,
@@ -33,10 +35,21 @@ def init_db():
             s3_key TEXT NOT NULL
         )
     """)
+
+    # Table to track chunks for each document
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chunk_mappings (
+            chunk_id TEXT PRIMARY KEY,
+            doc_id TEXT NOT NULL,
+            FOREIGN KEY(doc_id) REFERENCES file_mappings(doc_id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
 init_db()
+
 
 
 # Initialize FastAPI app
@@ -69,12 +82,56 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(PINECONE_INDEX_NAME)
 
 
-# Delete all vectors in the index
-# index.delete(delete_all=True)
-# print("All vectors have been deleted from the index.")
+def clear_pinecone():
+    """Delete all vectors in Pinecone."""
+    try:
+        index.delete(delete_all=True)
+        print("All vectors have been deleted from Pinecone.")
+    except Exception as e:
+        print(f"Error deleting vectors from Pinecone: {e}")
+
+def clear_s3():
+    """Delete all files in the S3 bucket."""
+    try:
+        # List all objects in the bucket
+        response = s3_client.list_objects_v2(Bucket=BUCKET_NAME)
+        if "Contents" in response:
+            # Extract object keys
+            object_keys = [{"Key": obj["Key"]} for obj in response["Contents"]]
+            
+            # Delete all objects in the bucket
+            s3_client.delete_objects(
+                Bucket=BUCKET_NAME,
+                Delete={"Objects": object_keys}
+            )
+            print(f"All files have been deleted from the S3 bucket '{BUCKET_NAME}'.")
+        else:
+            print(f"No files found in the S3 bucket '{BUCKET_NAME}'.")
+    except Exception as e:
+        print(f"Error deleting files from S3: {e}")
+
+def clear_sqlite():
+    """Delete all entries in the SQLite database."""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        
+        # Clear file_mappings table
+        cursor.execute("DELETE FROM file_mappings")
+        # Clear chunk_mappings table
+        cursor.execute("DELETE FROM chunk_mappings")
+        
+        conn.commit()
+        conn.close()
+        print("All entries have been deleted from SQLite database.")
+    except Exception as e:
+        print(f"Error clearing SQLite database: {e}")
+
+
+# clear_pinecone()
+# clear_s3()
+# clear_sqlite()
 # exit()
-
-
 
 
 
@@ -153,20 +210,46 @@ async def upload_file(file: UploadFile = File(...)):
 async def delete_file(doc_id: str):
     """Delete a document and its associated data."""
     try:
-        original_key = f"{doc_id}.original"
-        text_key = f"{doc_id}.txt"
-        s3_client.delete_object(Bucket=BUCKET_NAME, Key=original_key)
+        # Retrieve the mapping to identify the file keys
+        mapping = get_mapping(doc_id)
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Document ID not found.")
+
+        # Extract S3 keys from the mapping
+        s3_key = mapping["s3_key"]
+        text_key = f"{doc_id}/{doc_id}.txt"
+
+        # Delete the files from S3
+        s3_client.delete_object(Bucket=BUCKET_NAME, Key=s3_key)
         s3_client.delete_object(Bucket=BUCKET_NAME, Key=text_key)
-        log_message(f"Deleted files {original_key} and {text_key} from S3.")
+        log_message(f"Deleted files {s3_key} and {text_key} from S3.")
 
-        # Delete vectors from Pinecone
-        index.delete(filter={"doc_id": doc_id})
-        log_message(f"Deleted vectors for document {doc_id} from Pinecone.")
+        # Retrieve chunk IDs from the database
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT chunk_id FROM chunk_mappings WHERE doc_id = ?", (doc_id,))
+        chunk_ids = [row[0] for row in cursor.fetchall()]
+        
+        if chunk_ids:
+            # Delete vectors from Pinecone
+            index.delete(ids=chunk_ids)
+            log_message(f"Deleted {len(chunk_ids)} vectors for document {doc_id} from Pinecone.")
 
-        return {"message": f"Document {doc_id} deleted successfully."}
+            # Delete chunk mappings from the database
+            cursor.execute("DELETE FROM chunk_mappings WHERE doc_id = ?", (doc_id,))
+        
+        # Delete the document mapping
+        cursor.execute("DELETE FROM file_mappings WHERE doc_id = ?", (doc_id,))
+        conn.commit()
+        conn.close()
+        log_message(f"Deleted file mapping for document {doc_id} from SQLite database.")
+
+        return {"message": f"Document {doc_id} and its associated data deleted successfully."}
     except Exception as e:
         log_message(f"Error deleting file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @app.post("/chat/")
 async def chat_with_bot(request: ChatRequest):
@@ -286,14 +369,33 @@ def chunk_text(text):
 async def vectorize_chunks(chunks, doc_id, filename):
     """Embed chunks using OpenAI and prepare them for Pinecone."""
     vectors = []
+    chunk_ids = []
     for chunk in chunks:
+        chunk_id = str(uuid.uuid4())
         embedding = await embed_text(chunk)
         vectors.append({
-            "id": str(uuid.uuid4()),
+            "id": chunk_id,
             "values": embedding,
             "metadata": {"doc_id": doc_id, "text": chunk, "filename": filename}  # Dynamically use actual file name
         })
+        chunk_ids.append(chunk_id)
+
+    # Store chunk IDs in the database
+    save_chunk_ids(doc_id, chunk_ids)
+
     return vectors
+
+def save_chunk_ids(doc_id, chunk_ids):
+    """Save chunk IDs to the database."""
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.executemany(
+        "INSERT INTO chunk_mappings (chunk_id, doc_id) VALUES (?, ?)",
+        [(chunk_id, doc_id) for chunk_id in chunk_ids]
+    )
+    conn.commit()
+    conn.close()
+
 
 
 
@@ -364,12 +466,56 @@ async def generate_email(request: EmailRequest):
     try:
         # Generate email content using OpenAI
         prompt = f"""
-        Generate a professional email for a job application to Lyle. The email should include the company name, job description, and a polite expression of interest in the position.
-        
-        Company: {request.companyName}
-        Job Description: {request.jobDescription}
+        You are an expert email generator specializing in creating professional, persuasive emails tailored to specific business contexts. Your task is to draft a personalized email from a hiring manager to Lyle, inviting him to discuss an exciting job opportunity at the company. The email must reflect the hiring manager's interest in Lyle's qualifications and align with the job description provided.
 
-        The email should be addressed to Lyle, expressing interest in the role and requesting a discussion.
+        ### Context:
+        - **Hiring Manager's Role**: This email is from a hiring manager seeking to engage Lyle for a potential role.
+        - **Details Provided**:
+        - Company Name: {request.companyName}
+        - Job Description: {request.jobDescription}
+
+        ### Objective:
+        The email should:
+        1. Be professionally written and personalized to Lyle.
+        2. Clearly introduce the company and job role in a compelling way.
+        3. Explain why Lyle’s background or expertise makes him a strong fit for the position, referencing the job description.
+        4. Highlight the unique opportunities or values of the company to entice Lyle.
+        5. Conclude with a clear call to action, such as scheduling a meeting or interview.
+
+        ### Requirements:
+        - **Subject Line**: Create a concise and engaging subject line.
+        - **Body**:
+        1. **Introduction**: Briefly introduce yourself (the hiring manager) and the company.
+        2. **Job Position**: Clearly state the job title and why Lyle is an ideal candidate.
+        3. **Company Appeal**: Highlight the company's unique attributes or mission.
+        4. **Call to Action**: Invite Lyle to discuss the opportunity further.
+
+        ### Example Output:
+        - **Subject**: Exciting Opportunity: Senior Developer Position at {request.companyName}
+
+        - **Body**:
+            Dear Lyle,
+
+            My name is [Hiring Manager's Name], and I am the [Position Title] at {request.companyName}. We are thrilled to invite you to explore an exciting opportunity for the role of [Job Title] at our company.
+
+            At {request.companyName}, we are dedicated to [insert company’s mission, unique values, or key accomplishments from the job description, e.g., "delivering innovative software solutions that empower businesses globally"]. After reviewing your background, we believe your [specific skill or achievement related to the job description] makes you an exceptional candidate for this role.
+
+            This position offers [specific details from the job description that might appeal to Lyle, e.g., "a chance to lead a dynamic team in creating impactful solutions"]. We are confident that your expertise in [specific technology, skill, or area] will contribute significantly to our success.
+
+            I would be delighted to discuss this opportunity further at a time that works for you. Please let me know your availability, and we can arrange a call or meeting.
+
+            Thank you for considering this opportunity. I look forward to hearing from you.
+
+            Best regards,  
+            [Hiring Manager's Name]  
+            [Position Title]  
+            {request.companyName}  
+            [Contact Information]
+
+        ### Output Formatting:
+        - Provide the email in a professional format with:
+        - A compelling subject line.
+        - A structured body that aligns with the guidelines.
         """
 
         response = openai.ChatCompletion.create(
@@ -384,6 +530,7 @@ async def generate_email(request: EmailRequest):
 
         email_content = response["choices"][0]["message"]["content"]
         
+        print(email_content)
         # Return the generated email content
         return {"emailContent": email_content}
     
@@ -396,16 +543,13 @@ async def send_email(request: EmailRequest):
     try:
         # Generate email content using OpenAI (same logic as above)
         prompt = f"""
-        Generate a professional email for a job application to Lyle. The email should include the company name, job description, and a polite expression of interest in the position.
-        
-        Company: {request.companyName}
-        Job Description: {request.jobDescription}
+                this is a prompt
+         """
 
-        The email should be addressed to Lyle, expressing interest in the role and requesting a discussion.
-        """
+
 
         response = openai.ChatCompletion.create(
-            model="gpt-4o",  # Replace with the desired model
+            model="gpt-4o",  
             messages=[
                 {"role": "system", "content": "You are an assistant who helps users generate professional emails."},
                 {"role": "user", "content": prompt}
