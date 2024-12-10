@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Include marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Include MathJax for LaTeX rendering -->
+    <script type="text/javascript" async
+        src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lylebot Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="container">
+        <nav>
+            <button onclick="showPage('uploadPage')" class="active" aria-label="Upload Files">
+                <span>📂 Upload Files</span>
+            </button>
+            <button onclick="showPage('chatPage')" aria-label="Chat with LyleBot">
+                <span>💬 Chatbot</span>
+            </button>
+            <button onclick="showPage('reachOutPage')" aria-label="Reach Out">
+                <span>📧 Reach Out</span>
+            </button>
+        </nav>
+        
+        <div class="content">
+            <!-- Upload Files Page -->
+            <div id="uploadPage" class="page active">
+                <h1>Upload Files</h1>
+                <form id="uploadForm">
+                    <h2>Upload File</h2>
+                    <label for="fileInput">Choose a file to upload:</label>
+                    <input type="file" id="fileInput" name="file" required>
+                    <button type="submit">Upload</button>
+                </form>
+                
+                <!-- Uploaded Files Display -->
+                <div id="uploadedFiles">
+                    <h2>Uploaded Files</h2>
+                    <div id="fileList"></div> <!-- Grid container for uploaded files -->
+                </div>
+                
+            </div>
+            <div id="uploadStatus">
+                <!-- File upload success/error messages will appear here -->
+                <div id="fileList"></div> <!-- Container for displaying uploaded PDF icons -->
+            </div>
+
+            <!-- Chatbot Page -->
+            <div id="chatPage" class="page">
+                <h1>Chat with Lylebot</h1>
+                <div id="chatbox">
+                    <div id="chatMessages"></div>
+                    <div id="sampleQuestions"></div> <!-- Container for sample questions -->
+                    <form id="chatForm">
+                        <input type="text" id="userInput" placeholder="Type your message..." required />
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
+                
+                <div id="citationSection">
+                    <h2>Referenced Sources</h2>
+                    <div id="pdfViewer"></div> <!-- Container for displaying PDF -->
+                    <ul id="sourceList"></ul> <!-- List for additional sources -->
+                </div>
+            </div>
+
+            <!-- Reach Out Page -->
+            <div id="reachOutPage" class="page">
+                <h1>Reach Out</h1>
+                <form id="reachOutForm">
+                    <label for="companyName">Company Name:</label>
+                    <input type="text" id="companyName" name="companyName" placeholder="Enter the company name" required>
+                    
+                    <label for="jobDescription">Job Description:</label>
+                    <textarea id="jobDescription" name="jobDescription" rows="6" placeholder="Paste the job description here" required></textarea>
+                    
+                    <button type="submit">Generate Email</button>
+                </form>
+                <div id="emailPreview"></div> <!-- Container to preview the generated email -->
+                <button id="sendEmailButton" style="display:none;" onclick="sendEmail()">Send Email</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

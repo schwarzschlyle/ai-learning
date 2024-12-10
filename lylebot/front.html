@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lylebot Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="container">
+        <nav>
+            <button onclick="showPage('uploadPage')">Upload Files</button>
+            <button onclick="showPage('chatPage')">Chatbot</button>
+        </nav>
+
+        <div id="uploadPage" class="page">
+            <h1>Upload Files</h1>
+            <form id="uploadForm">
+                <label for="fileInput">Select a file:</label>
+                <input type="file" id="fileInput" name="file" accept=".pdf, .txt" required>
+                <button type="submit">Upload</button>
+            </form>
+            <div id="uploadStatus"></div>
+        </div>
+
+        <div id="chatPage" class="page hidden">
+            <h1>Chat with Lylebot</h1>
+            <div id="chatbox">
+                <div id="chatMessages"></div>
+                <form id="chatForm">
+                    <input type="text" id="userInput" placeholder="Type your message..." required>
+                    <button type="submit">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
