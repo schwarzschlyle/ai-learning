@@ -1,39 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta Information -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lylebot Interface</title>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> <!-- Markdown rendering -->
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script> <!-- LaTeX rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="container">
-        <nav>
-            <button onclick="showPage('uploadPage')">Upload Files</button>
-            <button onclick="showPage('chatPage')">Chatbot</button>
+        <!-- Navigation -->
+        <nav aria-label="Primary Navigation">
+            <button onclick="showPage('chatPage')" aria-label="Chat with LyleBot">
+                💬 Chatbot
+            </button>
+            <button onclick="showPage('reachOutPage')" aria-label="Reach Out">
+                📧 Reach Out
+            </button>
         </nav>
 
-        <div id="uploadPage" class="page">
-            <h1>Upload Files</h1>
-            <form id="uploadForm">
-                <label for="fileInput">Select a file:</label>
-                <input type="file" id="fileInput" name="file" accept=".pdf, .txt" required>
-                <button type="submit">Upload</button>
-            </form>
-            <div id="uploadStatus"></div>
-        </div>
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Upload Files Page -->
+            <section id="uploadPage" class="page active" aria-labelledby="uploadHeader">
+                <h1 id="uploadHeader">Upload Files</h1>
+                
+                <!-- Drag and Drop Zone -->
+                <div id="dragAndDropZone" class="drag-and-drop-zone" aria-label="File Drag-and-Drop Area">
+                    <p>Drag & Drop your files here</p>
+                </div>
 
-        <div id="chatPage" class="page hidden">
-            <h1>Chat with Lylebot</h1>
-            <div id="chatbox">
-                <div id="chatMessages"></div>
-                <form id="chatForm">
-                    <input type="text" id="userInput" placeholder="Type your message..." required>
-                    <button type="submit">Send</button>
+                <!-- Upload Form -->
+                <!-- <form id="uploadForm">
+                    <h2>Upload File</h2>
+                    <label for="fileInput">Choose a file to upload:</label>
+                    <input type="file" id="fileInput" name="file" required>
+                    <button type="submit">Upload</button>
+                </form> -->
+
+                <!-- Uploaded Files -->
+                <div id="uploadedFiles">
+                    <h2>Uploaded Files</h2>
+                    <div id="fileList" aria-live="polite"></div>
+                </div>
+            </section>
+
+            <!-- Chatbot Page -->
+
+                <!-- Loading Animation Placeholder -->
+                <div id="loadingGear" style="display:none; width: 200px; height: 200px; margin: auto;"></div>
+
+            <section id="chatPage" class="page" aria-labelledby="chatHeader">
+                <h1 id="chatHeader">Chat with LyleBot</h1>
+
+                <!-- Chatbox -->
+                <div id="chatbox">
+                    <div id="chatMessages" aria-live="polite"></div>
+                    <div id="sampleQuestions"></div> <!-- Placeholder for sample questions -->
+                    <form id="chatForm" aria-label="Chat Input">
+                        <input type="text" id="userInput" placeholder="Type your message..." required />
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
+
+                <!-- Citation and Sources -->
+                <div id="citationSection">
+                    <h2>Referenced Sources</h2>
+                    <div id="pdfViewer"></div> <!-- Container for displaying PDFs -->
+                    <ul id="sourceList"></ul> <!-- List for additional sources -->
+                </div>
+            </section>
+
+            <!-- Reach Out Page -->
+            <section id="reachOutPage" class="page" aria-labelledby="reachOutHeader">
+                <h1 id="reachOutHeader">Reach Out</h1>
+                <form id="reachOutForm">
+                    <div class="form-group">
+                        <label for="companyName">Company Name:</label>
+                        <input type="text" id="companyName" name="companyName" placeholder="Enter the company name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jobDescription">Job Description:</label>
+                        <textarea id="jobDescription" name="jobDescription" rows="6" placeholder="Paste the job description here" required></textarea>
+                    </div>
+                    <button type="submit" class="primary-button">Generate Email</button>
                 </form>
-            </div>
-        </div>
+
+                <!-- Email Preview -->
+                <div id="emailPreview" class="email-preview"></div>
+                <button id="sendEmailButton" class="primary-button hidden" style="display: none;">Send Email</button>
+            </section>
+        </main>
     </div>
+
+    <!-- Script -->
     <script src="script.js"></script>
 </body>
 </html>
