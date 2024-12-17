@@ -167,6 +167,10 @@ def log_message(message):
     logger.info(message)
     print(message)
 
+
+
+
+
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
     """Upload a file to S3 and process it."""

@@ -1,0 +1,170 @@
+openapi: 3.0.2
+info:
+  title: FastAPI Backend
+  description: API for managing file uploads, chat interactions, and email generation.
+  version: 1.0.0
+paths:
+  /upload/:
+    post:
+      summary: Upload a file to S3 and process it
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File uploaded and processed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  doc_id:
+                    type: string
+        '500':
+          description: Server error
+  /delete/{doc_id}:
+    delete:
+      summary: Delete a document and its associated data
+      parameters:
+        - name: doc_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Document ID not found
+        '500':
+          description: Server error
+  /chat/:
+    post:
+      summary: Handle user query and return relevant response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                  session_id:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        doc_id:
+                          type: string
+                        name:
+                          type: string
+        '500':
+          description: Server error
+  /download/{doc_id}:
+    get:
+      summary: Retrieve the original PDF file for the given document ID
+      parameters:
+        - name: doc_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Download URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  download_url:
+                    type: string
+        '404':
+          description: Document ID not found
+        '500':
+          description: Server error
+  /generate_email/:
+    post:
+      summary: Generate an email based on the provided company name and job description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailRequest'
+      responses:
+        '200':
+          description: Generated email content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emailContent:
+                    type: string
+        '500':
+          description: Server error
+  /list_uploaded_files/:
+    get:
+      summary: Retrieve all uploaded PDF files from the database
+      responses:
+        '200':
+          description: List of uploaded files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        doc_id:
+                          type: string
+                        filename:
+                          type: string
+                        s3_key:
+                          type: string
+        '500':
+          description: Server error
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      properties:
+        query:
+          type: string
+    EmailRequest:
+      type: object
+      properties:
+        companyName:
+          type: string
+        jobDescription:
+          type: string
