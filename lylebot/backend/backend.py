@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 from fastapi.logger import logger
 import boto3
@@ -14,6 +15,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
 #openai 0.28.0
+
+
+load_dotenv()
 
 class ChatRequest(BaseModel):
     query: str

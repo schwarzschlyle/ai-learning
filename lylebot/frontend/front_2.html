@@ -20,14 +20,14 @@
         <!-- Navigation -->
         <nav aria-label="Primary Navigation">
             <button onclick="showPage('uploadPage')" class="active" aria-label="Upload Files">
-                📂 Upload Files
+                📂
             </button>
             <button onclick="showPage('chatPage')" aria-label="Chat with LyleBot">
-                💬 Chatbot
+                💬
             </button>
-            <button onclick="showPage('reachOutPage')" aria-label="Reach Out">
-                📧 Reach Out
-            </button>
+            <!-- <button onclick="showPage('reachOutPage')" aria-label="Reach Out">
+                📧
+            </button> -->
         </nav>
 
         <!-- Main Content -->
@@ -41,13 +41,7 @@
                     <p>Drag & Drop your files here</p>
                 </div>
 
-                <!-- Upload Form -->
-                <!-- <form id="uploadForm">
-                    <h2>Upload File</h2>
-                    <label for="fileInput">Choose a file to upload:</label>
-                    <input type="file" id="fileInput" name="file" required>
-                    <button type="submit">Upload</button>
-                </form> -->
+     
 
                 <!-- Uploaded Files -->
                 <div id="uploadedFiles">
@@ -56,13 +50,17 @@
                 </div>
             </section>
 
+
+
+
+
+
+            
             <!-- Chatbot Page -->
 
-                <!-- Loading Animation Placeholder -->
-                <div id="loadingGear" style="display:none; width: 200px; height: 200px; margin: auto;"></div>
 
             <section id="chatPage" class="page" aria-labelledby="chatHeader">
-                <h1 id="chatHeader">Chat with LyleBot</h1>
+               
 
                 <!-- Chatbox -->
                 <div id="chatbox">
@@ -76,11 +74,18 @@
 
                 <!-- Citation and Sources -->
                 <div id="citationSection">
-                    <h2>Referenced Sources</h2>
-                    <div id="pdfViewer"></div> <!-- Container for displaying PDFs -->
-                    <ul id="sourceList"></ul> <!-- List for additional sources -->
+                   
+                    <div id="citationContent" style="display: none;">This is a citation example.</div>   
+                 
+                        <div id="pdfViewer"></div>
+                        <ul id="sourceList"></ul>
+                    </div>
                 </div>
+                
             </section>
+
+
+
 
             <!-- Reach Out Page -->
             <section id="reachOutPage" class="page" aria-labelledby="reachOutHeader">

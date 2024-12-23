@@ -1,0 +1,19 @@
+<!-- reachOutPage.html -->
+<section id="reachOutPage" class="page" aria-labelledby="reachOutHeader">
+    <h1 id="reachOutHeader">Reach Out</h1>
+    <form id="reachOutForm">
+        <div class="form-group">
+            <label for="companyName">Company Name:</label>
+            <input type="text" id="companyName" name="companyName" placeholder="Enter the company name" required>
+        </div>
+        <div class="form-group">
+            <label for="jobDescription">Job Description:</label>
+            <textarea id="jobDescription" name="jobDescription" rows="6" placeholder="Paste the job description here" required></textarea>
+        </div>
+        <button type="submit" class="primary-button">Generate Email</button>
+    </form>
+
+    <!-- Email Preview -->
+    <div id="emailPreview" class="email-preview"></div>
+    <button id="sendEmailButton" class="primary-button hidden" style="display: none;">Send Email</button>
+</section>
